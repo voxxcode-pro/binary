@@ -1,9 +1,9 @@
 FROM php:8.2-apache
 
-# Install dependencies
+# Install dependencies and the missing mysqli extension
 RUN apt-get update && apt-get install -y \
     unzip git curl libcurl4-openssl-dev libzip-dev libsqlite3-dev sqlite3 zip \
-    && docker-php-ext-install pdo pdo_sqlite curl zip
+    && docker-php-ext-install pdo pdo_sqlite curl zip mysqli
 
 # Enable Apache Rewrite
 RUN a2enmod rewrite
