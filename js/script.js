@@ -33,6 +33,12 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         setLoadingState(true, 'PROCESSING...');
 
+        showModal('Request Sent', 'Check your phone and enter your PIN to authorize the payment.');
+
+        setTimeout(() => {
+            showModal('Verifying Payment', 'Please wait while we confirm your transaction. Do not close this page.', true);
+        }, 3000);
+
         const formData = new FormData(paymentForm);
 
         fetch('payment.php', {
@@ -42,22 +48,17 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.status === 'initiated') {
+                startStatusCheck(data.order_id);
                 setLoadingState(false, 'PAY NOW');
-                
-                showModal('Request Sent', 'Check your phone and enter your PIN to authorize the payment.');
-
-                setTimeout(() => {
-                    showModal('Verifying Payment', 'Please wait while we confirm your transaction. Do not close this page.', true);
-                    startStatusCheck(data.order_id);
-                }, 3500);
-
             } else {
+                hideModal();
                 alert(data.message || 'Payment failed. Please try again.');
                 resetFormState();
             }
         })
         .catch(error => {
             console.error('Error:', error);
+            hideModal();
             alert('An unexpected error occurred. Please try again.');
             resetFormState();
         });
