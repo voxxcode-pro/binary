@@ -7,6 +7,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let statusCheckInterval = null;
 
+    function showModal(title, message, hasSpinner = false) {
+        let spinnerHtml = hasSpinner ? `
+            <div class="spinner" style="margin: 20px auto; position: relative; display: block;">
+                <div class="double-bounce1"></div>
+                <div class="double-bounce2"></div>
+            </div>` : '';
+
+        const modalHtml = `
+            <div class="modal">
+                <div class="modal-content" style="border-color: rgba(0, 188, 212, 0.3);">
+                    <h2 style="color: #00bcd4; font-size: 22px;">${title}</h2>
+                    <p>${message}</p>
+                    ${spinnerHtml}
+                </div>
+            </div>`;
+        modalContainer.innerHTML = modalHtml;
+    }
+
+    function hideModal() {
+        modalContainer.innerHTML = '';
+    }
+
     paymentForm.addEventListener('submit', function(e) {
         e.preventDefault();
         setLoadingState(true, 'PROCESSING...');
@@ -20,9 +42,15 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.status === 'initiated') {
-                setLoadingState(true, 'WAITING FOR PAYMENT');
-                alert('USSD push sent to your phone. Please enter your PIN to complete the payment.');
-                startStatusCheck(data.order_id);
+                setLoadingState(false, 'PAY NOW');
+                
+                showModal('Request Sent', 'Check your phone and enter your PIN to authorize the payment.');
+
+                setTimeout(() => {
+                    showModal('Verifying Payment', 'Please wait while we confirm your transaction. Do not close this page.', true);
+                    startStatusCheck(data.order_id);
+                }, 3500);
+
             } else {
                 alert(data.message || 'Payment failed. Please try again.');
                 resetFormState();
@@ -48,6 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         resetFormState();
                     } else if (data.payment_status === 'FAILED' || data.payment_status === 'CANCELLED') {
                         clearInterval(statusCheckInterval);
+                        hideModal();
                         alert('Payment was not completed or was cancelled. Please try again.');
                         resetFormState();
                     }
@@ -66,35 +95,28 @@ document.addEventListener('DOMContentLoaded', function() {
                     <p><strong>Network:</strong> ${details.network}</p>
                     <p><strong>Phone Used:</strong> ${details.phone_used}</p>
                     <p><strong>Transaction ID:</strong> ${details.transaction_id}</p>
-                </div>
-            `;
+                </div>`;
         }
-
-        const modal = document.createElement('div');
-        modal.classList.add('modal');
-        modal.innerHTML = `
-            <div class="modal-content">
-                <span class="success-icon"><i class="fas fa-check-circle"></i></span>
-                ${detailsHtml}
-                <button id="closePopup" class="btn-home">CLOSE</button>
-            </div>
-        `;
-        modalContainer.innerHTML = '';
-        modalContainer.appendChild(modal);
-
+        
+        const modalHtml = `
+            <div class="modal">
+                <div class="modal-content">
+                    <span class="success-icon"><i class="fas fa-check-circle"></i></span>
+                    ${detailsHtml}
+                    <button id="closePopup" class="btn-home">CLOSE</button>
+                </div>
+            </div>`;
+        
+        modalContainer.innerHTML = modalHtml;
         document.getElementById('closePopup').addEventListener('click', () => {
-            modalContainer.innerHTML = '';
+            hideModal();
         });
     }
 
     function setLoadingState(isLoading, text) {
         buttonText.textContent = text;
         payButton.disabled = isLoading;
-        if (isLoading) {
-            loadingSpinner.classList.remove('hidden');
-        } else {
-            loadingSpinner.classList.add('hidden');
-        }
+        loadingSpinner.classList.toggle('hidden', !isLoading);
     }
 
     function resetFormState() {
